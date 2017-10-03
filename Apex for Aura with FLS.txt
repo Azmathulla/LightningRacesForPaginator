@@ -1,0 +1,56 @@
+public with sharing class Contact_Section_ApexController {
+    @AuraEnabled
+    public static List<Contact> getContactsDB(ID AccId){
+        //note ID is from URL on the cmp so single quotes are missing, 
+        String resolvedField = '\'' + AccId + '\'';
+        
+        //catch all fields reqd on cmp
+        String [] expenseAccessFields = new String [] {'Id',
+                                                       'Name',
+                                                       'Phone', 
+                                                       'Title', 
+                                                       'Email'
+            										  };
+                                
+        // Obtaining the field name/token map for the Expense object
+        Map<String,Schema.SObjectField> m = Schema.SObjectType.Contact.fields.getMap();
+        
+        //we will use this for our logic
+        List<String> fields = new List<String>();
+        String query = '';
+        
+        // looping through all the fields to see if they are accessible
+        for (String fieldToCheck : expenseAccessFields) {
+            if (m.get(fieldToCheck).getDescribe().isAccessible()) {
+                fields.add(fieldToCheck.trim());
+            }
+        }
+        
+         system.debug('obj fields are now '+fields);
+        
+        //any fields that are not accessible are just left out, rather than seeing any error message 
+        if(fields.Size() > 0) {
+            //building a dynamic query string using only the fields that are accessible
+            query = 'SELECT '+String.join(fields,',')+ ' FROM Contact';           
+            query+= ' WHERE AccountId = ' +resolvedField;
+        }
+        
+        //check the query built here is single quoted for ID when we used ' ' in resolvedField, direct error not caught there.
+        system.debug(' soql is '+query);
+        
+        //system.debug('final result '+Database.query(query) );
+        return  Database.query(query);
+        
+     //       baseQuery += key +'=\' ' + value + '\'';
+     //       key ='4'
+        
+                /*
+        //now it is safe to proceed with call
+        return [SELECT Id, Name, Phone, Title, Email 
+        FROM Contact
+        WHERE AccountId =:AccId];
+        */
+        
+    } 
+    
+}
